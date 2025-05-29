@@ -1,0 +1,143 @@
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local player = Players.LocalPlayer
+local fps = 0
+
+-- Function to create the watermark
+local function createWatermark()
+    -- Check if a watermark already exists and delete it
+    local existingWatermark = CoreGui:FindFirstChild("UltraSenseWatermark")
+    if existingWatermark then
+        existingWatermark:Destroy()
+    end
+
+    -- Create new ScreenGui for the watermark
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "UltraSenseWatermark"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = CoreGui
+
+    -- Main frame with lighter dark purple outline
+    local outline = Instance.new("Frame")
+    outline.Name = "Outline"
+    outline.BackgroundColor3 = Color3.fromRGB(130, 50, 180) -- lighter dark purple
+    outline.BorderSizePixel = 1
+    outline.BorderColor3 = Color3.new(0, 0, 0)
+    outline.AnchorPoint = Vector2.new(0, 0)
+    outline.Position = UDim2.new(0, 10, 0, 10)
+    outline.Size = UDim2.new(0, 300, 0, 30)
+    outline.Active = true
+    outline.Parent = screenGui
+
+    -- Inner background frame
+    local inner = Instance.new("Frame")
+    inner.Size = UDim2.new(1, -4, 1, -4)
+    inner.Position = UDim2.new(0, 2, 0, 2)
+    inner.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    inner.BorderSizePixel = 0
+    inner.Parent = outline
+
+    -- TextLabel for watermark text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.TextTransparency = 0 -- fully visible now
+    textLabel.TextStrokeTransparency = 0.5
+    textLabel.Font = Enum.Font.RobotoMono
+    textLabel.TextSize = 16
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center
+    textLabel.Position = UDim2.new(0, 5, 0, 0)
+    textLabel.Size = UDim2.new(1, -10, 1, 0)
+    textLabel.Text = "UltraSense | Loading..."
+    textLabel.Parent = inner
+
+    -- Dragging variables
+    local dragging = false
+    local dragInput, dragStart, startPos
+    local targetPosition = outline.Position
+
+    local function updatePosition(input)
+        local delta = input.Position - dragStart
+        targetPosition = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+
+    outline.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = outline.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    outline.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            updatePosition(input)
+        end
+    end)
+
+    -- Smooth movement loop
+    RunService.RenderStepped:Connect(function(delta)
+        if dragging then
+            local currentPos = outline.Position
+            local newX = currentPos.X.Offset + (targetPosition.X.Offset - currentPos.X.Offset) * math.min(delta * 15, 1)
+            local newY = currentPos.Y.Offset + (targetPosition.Y.Offset - currentPos.Y.Offset) * math.min(delta * 15, 1)
+            outline.Position = UDim2.new(currentPos.X.Scale, newX, currentPos.Y.Scale, newY)
+        end
+    end)
+
+    -- Update FPS, game name, player name
+    local lastTick = tick()
+    local frameCount = 0
+
+    local function updateWatermark()
+        local success, info = pcall(function()
+            return MarketplaceService:GetProductInfo(game.PlaceId)
+        end)
+        
+        local gameName = (success and info and info.Name) or "FPS Game"
+        local playerName = player.Name or "Player"
+        
+        textLabel.Text = string.format("UltraSense | %s | %s | FPS: %d", gameName, playerName, fps)
+        
+        -- Resize frame width to fit text + padding
+        local textWidth = textLabel.TextBounds.X
+        local newWidth = textWidth + 20 -- padding
+        
+        outline.Size = UDim2.new(0, newWidth, 0, 30)
+    end
+
+    RunService.Heartbeat:Connect(function()
+        frameCount += 1
+        if tick() - lastTick >= 1 then
+            fps = frameCount
+            frameCount = 0
+            lastTick = tick()
+            updateWatermark()
+        end
+    end)
+end
+
+-- Run the function to create the watermark
+createWatermark()
