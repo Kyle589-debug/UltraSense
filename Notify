@@ -9,44 +9,46 @@ local fps = 0
 
 -- Function to create the watermark
 local function createWatermark()
-    -- Check if a watermark already exists and delete it
     local existingWatermark = CoreGui:FindFirstChild("UltraSenseWatermark")
     if existingWatermark then
         existingWatermark:Destroy()
     end
 
-    -- Create new ScreenGui for the watermark
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "UltraSenseWatermark"
     screenGui.ResetOnSpawn = false
     screenGui.Parent = CoreGui
 
-    -- Main frame with lighter dark purple outline
     local outline = Instance.new("Frame")
     outline.Name = "Outline"
-    outline.BackgroundColor3 = Color3.fromRGB(130, 50, 180) -- lighter dark purple
-    outline.BorderSizePixel = 1
-    outline.BorderColor3 = Color3.new(0, 0, 0)
+    outline.BackgroundColor3 = Color3.fromRGB(0, 40, 80) -- dark blue
+    outline.BorderSizePixel = 0
     outline.AnchorPoint = Vector2.new(0, 0)
     outline.Position = UDim2.new(0, 10, 0, 10)
     outline.Size = UDim2.new(0, 300, 0, 30)
     outline.Active = true
     outline.Parent = screenGui
 
-    -- Inner background frame
+    -- Glow effect using UIStroke
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 100, 255) -- light blue glow
+    stroke.Thickness = 2
+    stroke.Transparency = 0.5
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = outline
+
     local inner = Instance.new("Frame")
     inner.Size = UDim2.new(1, -4, 1, -4)
     inner.Position = UDim2.new(0, 2, 0, 2)
-    inner.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    inner.BackgroundColor3 = Color3.fromRGB(10, 10, 30)
     inner.BorderSizePixel = 0
     inner.Parent = outline
 
-    -- TextLabel for watermark text
     local textLabel = Instance.new("TextLabel")
     textLabel.BackgroundTransparency = 1
     textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textLabel.TextTransparency = 0 -- fully visible now
-    textLabel.TextStrokeTransparency = 0.5
+    textLabel.TextTransparency = 0.3 -- 90% transparent
+    textLabel.TextStrokeTransparency = 0.5 -- match transparency
     textLabel.Font = Enum.Font.RobotoMono
     textLabel.TextSize = 16
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -56,7 +58,7 @@ local function createWatermark()
     textLabel.Text = "UltraSense | Loading..."
     textLabel.Parent = inner
 
-    -- Dragging variables
+    -- Dragging functionality
     local dragging = false
     local dragInput, dragStart, startPos
     local targetPosition = outline.Position
@@ -97,7 +99,6 @@ local function createWatermark()
         end
     end)
 
-    -- Smooth movement loop
     RunService.RenderStepped:Connect(function(delta)
         if dragging then
             local currentPos = outline.Position
@@ -107,7 +108,7 @@ local function createWatermark()
         end
     end)
 
-    -- Update FPS, game name, player name
+    -- FPS and text updating
     local lastTick = tick()
     local frameCount = 0
 
@@ -121,10 +122,8 @@ local function createWatermark()
         
         textLabel.Text = string.format("UltraSense | %s | %s | FPS: %d", gameName, playerName, fps)
         
-        -- Resize frame width to fit text + padding
         local textWidth = textLabel.TextBounds.X
-        local newWidth = textWidth + 20 -- padding
-        
+        local newWidth = textWidth + 20
         outline.Size = UDim2.new(0, newWidth, 0, 30)
     end
 
@@ -139,5 +138,5 @@ local function createWatermark()
     end)
 end
 
--- Run the function to create the watermark
+-- Run it
 createWatermark()
